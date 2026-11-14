@@ -3,7 +3,8 @@
 from fastapi import APIRouter, Header, HTTPException, Request
 from fastapi.responses import JSONResponse
 
-from app.schemas import PaymentRequest
+from app.schemas import PaymentRequest, payment_fingerprint
+from app.store import StoredResponse
 
 router = APIRouter()
 
@@ -26,5 +27,17 @@ async def process_payment(
             detail="Idempotency-Key must contain 1 to 255 characters after trimming whitespace.",
         )
 
-    body = await request.app.state.processor.charge(payment)
-    return JSONResponse(status_code=201, content=body, headers={"X-Cache-Hit": "false"})
+    fingerprint = payment_fingerprint(payment)
+
+    async def work() -> StoredResponse:
+        body = await request.app.state.processor.charge(payment)
+        return StoredResponse(status_code=201, body=body)
+
+    response, replayed = await request.app.state.store.execute(
+        ("default", key), fingerprint, work
+    )
+    return JSONResponse(
+        status_code=response.status_code,
+        content=response.body,
+        headers={"X-Cache-Hit": "true" if replayed else "false"},
+    )
