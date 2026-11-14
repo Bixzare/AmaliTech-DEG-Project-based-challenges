@@ -19,10 +19,13 @@ The second request must not start a new charge and must not be rejected. It shou
 - Waiting is shielded, so a client disconnecting cancels only that client's wait. The charge task runs to completion and saves its result for the retry.
 - **The check and the registration are atomic.** The store looks up the key and inserts the in-flight record without yielding to the event loop in between. Since the event loop runs one coroutine at a time, no other request can run between those two steps, so two requests can never both register the same key. No lock is needed.
 - A request for an in-flight key with a different body fingerprint returns `409` straight away, without waiting.
+- If the charge task itself is cancelled, its record is removed so the key is not left stuck in flight.
+- On shutdown, the gateway waits for charges that have already started before exiting.
 
 ## Consequences
 
 - One code path serves the first request, concurrent duplicates and later replays.
-- A charge that has started always finishes and is recorded, whether or not anyone is still waiting for it.
+- A client disconnecting does not stop a charge that has started. It completes and is recorded whether or not anyone is still waiting for it.
+- This does not protect against the process being killed mid-charge. That charge and its record are lost, which is a limit of the in-memory store (see ADR 0001).
 - Waiters hold an open connection for up to the processing time. That is acceptable here because the processing time is short and bounded.
 - The atomicity argument relies on a single event loop in a single process. With multiple workers the same guarantee would come from an atomic operation in a shared store (see ADR 0001).

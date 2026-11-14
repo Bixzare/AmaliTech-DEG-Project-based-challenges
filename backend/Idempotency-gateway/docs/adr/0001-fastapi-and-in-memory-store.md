@@ -21,4 +21,5 @@ The gateway exposes one payment endpoint and must guarantee that a payment with 
 - Setup is a virtual environment, two runtime dependencies and one command.
 - Records are lost when the process restarts, so a retry that arrives after a restart would be charged again.
 - The guarantee holds only within one worker process. Running several workers or instances would give each its own store.
-- For production, the store would move to a shared database such as Redis, using an atomic set-if-absent with an expiry to claim a key. Because all access goes through `IdempotencyStore`, that change is contained to one class.
+- A shared store such as Redis is a possible direction for production: an atomic set-if-absent with an expiry would claim a key across workers. That alone is not a complete answer. A crash between charging and saving the response would leave a claimed key with no result, which needs reconciliation with the payment processor.
+- Because all access goes through `IdempotencyStore`, a change of store is contained to one class.
