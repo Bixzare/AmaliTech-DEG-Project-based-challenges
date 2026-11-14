@@ -8,6 +8,17 @@ from app.main import create_app
 from app.processor import PaymentProcessingError, PaymentProcessor
 
 
+class FakeClock:
+    def __init__(self):
+        self.now = 0.0
+
+    def __call__(self):
+        return self.now
+
+    def advance(self, seconds):
+        self.now += seconds
+
+
 class SpyProcessor(PaymentProcessor):
     def __init__(self):
         super().__init__(delay_seconds=0)
@@ -37,6 +48,11 @@ def anyio_backend():
 @pytest.fixture
 def processor():
     return SpyProcessor()
+
+
+@pytest.fixture
+def fake_clock():
+    return FakeClock()
 
 
 @pytest.fixture

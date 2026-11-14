@@ -4,7 +4,7 @@
 
 This API simulates payment processing and is designed to let clients retry requests safely using an `Idempotency-Key`. It uses FastAPI and an in-memory store in a single worker process to save and replay payment responses.
 
-The diagram describes the target design. Implementation is being added in tested increments; the ADRs record the decisions and their limits.
+The diagram describes the request flow; the ADRs record the decisions and their limits.
 
 ## Architecture diagram
 
@@ -132,11 +132,11 @@ Set environment variables before starting the server. Invalid settings prevent s
 | Environment variable | Default | Rule | Purpose |
 |---|---|---|---|
 | `PROCESSING_DELAY_SECONDS` | `2.0` | Finite, at least zero | Simulated payment processing delay |
-| `IDEMPOTENCY_TTL_SECONDS` | `86400` | Finite, greater than zero | Planned retention window for completed responses |
-| `IDEMPOTENCY_SWEEP_INTERVAL_SECONDS` | `60` | Finite, greater than zero | Planned interval between expiry sweeps |
+| `IDEMPOTENCY_TTL_SECONDS` | `86400` | Finite, greater than zero | Retention window for completed responses |
+| `IDEMPOTENCY_SWEEP_INTERVAL_SECONDS` | `60` | Finite, greater than zero | Interval between expiry sweeps |
 | `SIMULATION_CONTROLS_ENABLED` | `true` | `true`, `false`, `1` or `0` (case-insensitive) | Enable the manual failure-control endpoint |
 
-At this checkpoint, the TTL and sweep settings are validated, but expiry and background cleanup are not implemented yet.
+The TTL starts when a charge succeeds. Replaying a response does not extend its expiry, and in-flight charges never expire. Expired entries are removed on lookup and by the background sweeper. A retry at or after expiry starts a new charge, even with the same key and body.
 
 To try a failed payment without restarting the server, open `/docs` and send `{"count": 1}` to `POST /simulation/fail-next-charges` under **Simulation**. The next new charge waits for the configured processing delay and returns `502`. Retry the same payment with the same key to receive `201`; the failed attempt did not consume the key. The count can be an integer from 0 to 100, replaces the pending count, and zero clears it. Set `SIMULATION_CONTROLS_ENABLED=false` before starting the server to remove this route entirely. This control is only for the simulated processor.
 
@@ -147,7 +147,7 @@ To try a failed payment without restarting the server, open `/docs` and send `{"
 - [ADR 0003: Concurrent requests share one charge task](docs/adr/0003-in-flight-requests-share-one-charge-task.md)
 - [ADR 0004: Failed charges release their key](docs/adr/0004-failed-charges-release-the-key.md)
 
-Started charges run in their own tasks. Requests for the same key and payment wait for that task through cancellation shielding, so cancelling one request does not cancel the charge. During normal shutdown, the application waits for started charges to finish. This does not protect against the process being killed or records being lost on restart.
+Started charges run in their own tasks. Requests for the same key and payment wait for that task through cancellation shielding, so cancelling one request does not cancel the charge. During normal shutdown, the application stops and awaits the background sweeper, then waits for started charges to finish. This does not protect against the process being killed or records being lost on restart.
 
 ## Developer's choice
 

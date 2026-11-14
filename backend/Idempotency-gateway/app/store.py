@@ -21,6 +21,7 @@ class _Entry:
     fingerprint: str
     task: asyncio.Task[StoredResponse] | None = None
     response: StoredResponse | None = None
+    expires_at: float | None = None
 
 
 class IdempotencyStore:
@@ -41,6 +42,9 @@ class IdempotencyStore:
         # Atomic check-and-register: no await between lookup and registration.
         # All callers use one event loop, so another request cannot claim this key.
         entry = self._entries.get(scope)
+        if entry is not None and self._is_expired(entry, self.clock()):
+            del self._entries[scope]
+            entry = None
         if entry is not None:
             if entry.fingerprint != fingerprint:
                 raise IdempotencyKeyConflict(
@@ -69,6 +73,8 @@ class IdempotencyStore:
         try:
             response = await work()
             entry.response = response
+            # In-flight entries never expire: the TTL starts only on success.
+            entry.expires_at = self.clock() + self.ttl_seconds
             return response
         except BaseException:
             # Includes cancellation of the charge itself, not a shielded waiter.
@@ -86,6 +92,26 @@ class IdempotencyStore:
             return
         # Retrieve failures even when every requesting client has disconnected.
         task.exception()
+
+    @staticmethod
+    def _is_expired(entry: _Entry, now: float) -> bool:
+        return (
+            entry.response is not None
+            and entry.expires_at is not None
+            and now >= entry.expires_at
+        )
+
+    def purge_expired(self) -> int:
+        """Remove expired completed entries without touching in-flight work."""
+        now = self.clock()
+        expired = [
+            scope for scope, entry in self._entries.items()
+            if self._is_expired(entry, now)
+        ]
+        # This synchronous sweep cannot interleave with execute on the event loop.
+        for scope in expired:
+            del self._entries[scope]
+        return len(expired)
 
     async def drain(self) -> None:
         """Wait for charges already started before application shutdown."""

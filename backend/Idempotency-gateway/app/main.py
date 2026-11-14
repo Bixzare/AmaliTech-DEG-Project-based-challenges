@@ -1,8 +1,9 @@
 """Application factory and Uvicorn entry point."""
 
+import asyncio
 import time
 from collections.abc import Callable
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 
 from fastapi import FastAPI
 
@@ -17,12 +18,24 @@ def create_app(
     processor: PaymentProcessor | None = None,
     clock: Callable[[], float] | None = None,
 ) -> FastAPI:
+    async def sweep_expired(app: FastAPI) -> None:
+        while True:
+            await asyncio.sleep(app.state.settings.idempotency_sweep_interval_seconds)
+            app.state.store.purge_expired()
+
     @asynccontextmanager
     async def lifespan(app: FastAPI):
+        sweeper = asyncio.create_task(sweep_expired(app))
+        app.state.sweeper_task = sweeper
         try:
             yield
         finally:
-            await app.state.store.drain()
+            sweeper.cancel()
+            try:
+                with suppress(asyncio.CancelledError):
+                    await sweeper
+            finally:
+                await app.state.store.drain()
 
     app = FastAPI(title="Idempotency Gateway", lifespan=lifespan)
     app.state.settings = settings if settings is not None else Settings.from_env()
