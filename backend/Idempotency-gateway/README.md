@@ -144,6 +144,8 @@ At this checkpoint, the TTL and sweep settings are validated, but expiry and bac
 - [ADR 0003: Concurrent requests share one charge task](docs/adr/0003-in-flight-requests-share-one-charge-task.md)
 - [ADR 0004: Failed charges release their key](docs/adr/0004-failed-charges-release-the-key.md)
 
+Started charges run in their own tasks. Requests for the same key and payment wait for that task through cancellation shielding, so cancelling one request does not cancel the charge. During normal shutdown, the application waits for started charges to finish. This does not protect against the process being killed or records being lost on restart.
+
 ## Developer's choice
 
 [ADR 0005: Idempotency keys expire](docs/adr/0005-idempotency-keys-expire.md) defines a configurable retention window and periodic cleanup. Retrying after expiry creates a new payment; records are also lost on process restart.
