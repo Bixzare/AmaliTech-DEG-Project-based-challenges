@@ -1,4 +1,4 @@
-﻿# Idempotency Gateway
+# Idempotency Gateway
 
 ## Overview
 
@@ -52,7 +52,7 @@ sequenceDiagram
 
 ## Setup
 
-Install Git and Python 3.11 or newer. Local verification used Python 3.12 on Windows. No database or external service is required.
+Install Git and Python 3.11 or newer. No database or external service is required.
 
 Clone the repository if you do not already have it:
 
@@ -66,7 +66,7 @@ Start the following commands from the repository root (`AmaliTech-DEG-Project-ba
 
 ```bat
 cd backend\Idempotency-gateway
-py -3.12 -m venv .venv
+python -m venv .venv
 .venv\Scripts\activate.bat
 python -m pip install -r requirements.txt
 uvicorn app.main:app --port 8000
@@ -76,7 +76,7 @@ uvicorn app.main:app --port 8000
 
 ```powershell
 cd backend\Idempotency-gateway
-py -3.12 -m venv .venv
+python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
 uvicorn app.main:app --port 8000
@@ -89,7 +89,7 @@ If PowerShell blocks the activation script, use the virtual environment's interp
 .\.venv\Scripts\python.exe -m uvicorn app.main:app --port 8000
 ```
 
-The Windows examples select Python 3.12 explicitly. If you use another supported version, replace `-3.12` with that installed version.
+Confirm that `python --version` reports Python 3.11 or newer before creating the environment.
 
 ### macOS or Linux
 
