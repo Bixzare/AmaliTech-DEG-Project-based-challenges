@@ -10,6 +10,7 @@ The automated suite in [tests](../tests) covers the same behaviour and more. The
 | [ADR 0002](adr-0002-request-validation-and-fingerprinting.md) | Key and body validation, replay of the same request, rejection of a different body |
 | [ADR 0003](adr-0003-in-flight-requests-share-one-charge-task.md) | Duplicates that arrive mid-charge, conflicts mid-charge, a client disconnecting |
 | [ADR 0004](adr-0004-failed-charges-release-the-key.md) | Triggering a failed charge, retrying the same key, duplicates sharing a failure |
+| [ADR 0005](adr-0005-idempotency-keys-expire.md) | Replay within the retention time, a new charge after expiry, reuse of an expired key |
 
 ## Before you start
 
