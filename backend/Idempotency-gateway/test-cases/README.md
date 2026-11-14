@@ -9,6 +9,7 @@ The automated suite in [tests](../tests) covers the same behaviour and more. The
 | [ADR 0001](adr-0001-fastapi-and-in-memory-store.md) | The server starts, serves the docs, and keeps records in process memory |
 | [ADR 0002](adr-0002-request-validation-and-fingerprinting.md) | Key and body validation, replay of the same request, rejection of a different body |
 | [ADR 0003](adr-0003-in-flight-requests-share-one-charge-task.md) | Duplicates that arrive mid-charge, conflicts mid-charge, a client disconnecting |
+| [ADR 0004](adr-0004-failed-charges-release-the-key.md) | Triggering a failed charge, retrying the same key, duplicates sharing a failure |
 
 ## Before you start
 
