@@ -4,7 +4,7 @@ from fastapi import APIRouter, Header, HTTPException, Request
 from fastapi.responses import JSONResponse
 
 from app.schemas import PaymentRequest, payment_fingerprint
-from app.store import StoredResponse
+from app.store import IdempotencyKeyConflict, StoredResponse
 
 router = APIRouter()
 
@@ -33,9 +33,12 @@ async def process_payment(
         body = await request.app.state.processor.charge(payment)
         return StoredResponse(status_code=201, body=body)
 
-    response, replayed = await request.app.state.store.execute(
-        ("default", key), fingerprint, work
-    )
+    try:
+        response, replayed = await request.app.state.store.execute(
+            ("default", key), fingerprint, work
+        )
+    except IdempotencyKeyConflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     return JSONResponse(
         status_code=response.status_code,
         content=response.body,

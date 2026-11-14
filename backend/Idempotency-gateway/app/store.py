@@ -5,6 +5,10 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 
 
+class IdempotencyKeyConflict(Exception):
+    """The key is already reserved for a different validated payment body."""
+
+
 @dataclass(frozen=True)
 class StoredResponse:
     status_code: int
@@ -33,11 +37,15 @@ class IdempotencyStore:
     ) -> tuple[StoredResponse, bool]:
         """Return (response, replayed) for a completed payment or new work.
 
-        In-flight coordination, conflicts, and expiry are added in subsequent
-        implementation steps; this checkpoint covers sequential replay.
+        In-flight coordination and expiry are added in subsequent implementation
+        steps; this checkpoint covers sequential replay and conflicts.
         """
         entry = self._entries.get(scope)
         if entry is not None:
+            if entry.fingerprint != fingerprint:
+                raise IdempotencyKeyConflict(
+                    "Idempotency key already used for a different request body."
+                )
             return entry.response, True
 
         response = await work()

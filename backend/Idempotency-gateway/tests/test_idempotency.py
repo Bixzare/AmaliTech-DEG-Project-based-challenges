@@ -76,3 +76,56 @@ async def test_new_app_has_its_own_store(client, processor):
     assert second.headers["X-Cache-Hit"] == "false"
     assert first.json()["transaction_id"] != second.json()["transaction_id"]
     assert processor.calls == 2
+
+
+@pytest.mark.parametrize(
+    "changed_body",
+    [
+        {"amount": 500, "currency": "GHS"},
+        {"amount": 100.01, "currency": "GHS"},
+        {"amount": 100, "currency": "USD"},
+    ],
+)
+async def test_different_body_conflicts_without_changing_saved_payment(
+    client, processor, changed_body
+):
+    headers = {"Idempotency-Key": "reserved-payment"}
+    original_body = {"amount": 100, "currency": "GHS"}
+    first = await client.post("/process-payment", headers=headers, json=original_body)
+    conflict = await client.post("/process-payment", headers=headers, json=changed_body)
+
+    assert first.status_code == 201
+    assert conflict.status_code == 409
+    assert conflict.json() == {
+        "detail": "Idempotency key already used for a different request body."
+    }
+    assert "X-Cache-Hit" not in conflict.headers
+    assert processor.calls == 1
+
+    replay = await client.post("/process-payment", headers=headers, json=original_body)
+
+    assert replay.status_code == first.status_code
+    assert replay.content == first.content
+    assert replay.headers["X-Cache-Hit"] == "true"
+    assert processor.calls == 1
+
+
+async def test_invalid_body_for_existing_key_is_validation_error(client, processor):
+    headers = {"Idempotency-Key": "validated-payment"}
+    original_body = {"amount": 100, "currency": "GHS"}
+    first = await client.post("/process-payment", headers=headers, json=original_body)
+    invalid = await client.post(
+        "/process-payment", headers=headers, json={**original_body, "extra": "rejected"}
+    )
+
+    assert first.status_code == 201
+    assert invalid.status_code == 422
+    assert "X-Cache-Hit" not in invalid.headers
+    assert processor.calls == 1
+
+    replay = await client.post("/process-payment", headers=headers, json=original_body)
+
+    assert replay.status_code == 201
+    assert replay.content == first.content
+    assert replay.headers["X-Cache-Hit"] == "true"
+    assert processor.calls == 1
