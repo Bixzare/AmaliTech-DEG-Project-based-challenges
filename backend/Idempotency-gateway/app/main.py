@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from app.api import router
+from app.api import router, simulation_router
 from app.config import Settings
 from app.processor import PaymentProcessor
 from app.store import IdempotencyStore
@@ -34,6 +34,8 @@ def create_app(
         clock=clock if clock is not None else time.monotonic,
     )
     app.include_router(router)
+    if app.state.settings.simulation_controls_enabled:
+        app.include_router(simulation_router)
     return app
 
 

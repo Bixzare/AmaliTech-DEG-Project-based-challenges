@@ -9,6 +9,7 @@ def test_defaults(monkeypatch):
         "PROCESSING_DELAY_SECONDS",
         "IDEMPOTENCY_TTL_SECONDS",
         "IDEMPOTENCY_SWEEP_INTERVAL_SECONDS",
+        "SIMULATION_CONTROLS_ENABLED",
     ):
         monkeypatch.delenv(name, raising=False)
 
@@ -17,6 +18,7 @@ def test_defaults(monkeypatch):
     assert settings.processing_delay_seconds == 2
     assert settings.idempotency_ttl_seconds == 86400
     assert settings.idempotency_sweep_interval_seconds == 60
+    assert settings.simulation_controls_enabled is True
 
 
 def test_valid_environment_overrides(monkeypatch):
@@ -66,3 +68,23 @@ def test_invalid_environment_prevents_app_creation(monkeypatch, name, value):
 
     with pytest.raises(ValueError, match=name):
         create_app()
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    [("true", True), ("TRUE", True), ("1", True), ("false", False), ("FaLsE", False), ("0", False)],
+)
+def test_simulation_setting_from_environment(monkeypatch, value, expected):
+    monkeypatch.setenv("SIMULATION_CONTROLS_ENABLED", value)
+
+    assert Settings.from_env().simulation_controls_enabled is expected
+
+
+@pytest.mark.parametrize("value", ["yes", "", "2", "1.0"])
+def test_invalid_simulation_setting_rejected(monkeypatch, value):
+    monkeypatch.setenv("SIMULATION_CONTROLS_ENABLED", value)
+
+    with pytest.raises(ValueError, match="SIMULATION_CONTROLS_ENABLED"):
+        create_app()
+    with pytest.raises(ValueError, match="SIMULATION_CONTROLS_ENABLED"):
+        Settings(simulation_controls_enabled=value)

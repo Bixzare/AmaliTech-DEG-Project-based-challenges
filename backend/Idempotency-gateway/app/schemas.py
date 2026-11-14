@@ -14,6 +14,12 @@ class PaymentRequest(BaseModel):
     currency: str = Field(pattern=r"^[A-Z]{3}$", min_length=3, max_length=3)
 
 
+class FailureSimulationRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", json_schema_extra={"example": {"count": 1}})
+
+    count: int = Field(strict=True, ge=0, le=100)
+
+
 def payment_fingerprint(payment: PaymentRequest) -> str:
     payload = {
         "amount": str(payment.amount.quantize(Decimal("0.01"))),

@@ -10,6 +10,7 @@ class Settings:
     processing_delay_seconds: float = 2.0
     idempotency_ttl_seconds: float = 86400.0
     idempotency_sweep_interval_seconds: float = 60.0
+    simulation_controls_enabled: bool = True
 
     def __post_init__(self) -> None:
         for name, allow_zero in (
@@ -29,6 +30,13 @@ class Settings:
                 raise ValueError(message)
             object.__setattr__(self, name, value)
 
+        simulation_value = str(self.simulation_controls_enabled).lower()
+        if simulation_value not in {"true", "false", "1", "0"}:
+            raise ValueError("SIMULATION_CONTROLS_ENABLED must be true, false, 1 or 0.")
+        object.__setattr__(
+            self, "simulation_controls_enabled", simulation_value in {"true", "1"}
+        )
+
     @classmethod
     def from_env(cls) -> "Settings":
         return cls(
@@ -37,4 +45,5 @@ class Settings:
             idempotency_sweep_interval_seconds=os.getenv(
                 "IDEMPOTENCY_SWEEP_INTERVAL_SECONDS", "60"
             ),
+            simulation_controls_enabled=os.getenv("SIMULATION_CONTROLS_ENABLED", "true"),
         )

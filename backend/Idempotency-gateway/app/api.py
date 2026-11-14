@@ -3,10 +3,27 @@
 from fastapi import APIRouter, Header, HTTPException, Request
 from fastapi.responses import JSONResponse
 
-from app.schemas import PaymentRequest, payment_fingerprint
+from app.processor import PaymentProcessingError
+from app.schemas import FailureSimulationRequest, PaymentRequest, payment_fingerprint
 from app.store import IdempotencyKeyConflict, StoredResponse
 
 router = APIRouter()
+simulation_router = APIRouter(prefix="/simulation", tags=["Simulation"])
+
+
+@simulation_router.post(
+    "/fail-next-charges",
+    description=(
+        "Controls the simulated processor and would not exist with a real payment processor. "
+        "Replace the number of upcoming charges that will fail; zero clears pending failures."
+    ),
+)
+async def fail_next_charges(
+    simulation: FailureSimulationRequest, request: Request
+) -> dict[str, int]:
+    processor = request.app.state.processor
+    processor.fail_next(simulation.count)
+    return {"failures_pending": processor.failures_pending}
 
 
 @router.get("/health")
@@ -39,6 +56,14 @@ async def process_payment(
         )
     except IdempotencyKeyConflict as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except PaymentProcessingError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "Payment processing failed. No charge was made; "
+                "retry with the same Idempotency-Key."
+            ),
+        ) from exc
     return JSONResponse(
         status_code=response.status_code,
         content=response.body,
