@@ -1,0 +1,35 @@
+name: Idempotency Gateway tests
+
+on:
+  push:
+    paths:
+      - "backend/Idempotency-gateway/**"
+      - ".github/workflows/idempotency-gateway.yml"
+  pull_request:
+    paths:
+      - "backend/Idempotency-gateway/**"
+      - ".github/workflows/idempotency-gateway.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend/Idempotency-gateway
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: backend/Idempotency-gateway/requirements*.txt
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements-dev.txt
+
+      - name: Run tests
+        run: python -m pytest
