@@ -31,7 +31,30 @@ async def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@router.post("/process-payment", status_code=201)
+@router.post(
+    "/process-payment",
+    status_code=201,
+    responses={
+        400: {
+            "description": "Missing, blank or overlong Idempotency-Key.",
+            "content": {"application/json": {"example": {
+                "detail": "Idempotency-Key must contain 1 to 255 characters after trimming whitespace."
+            }}},
+        },
+        409: {
+            "description": "The key belongs to a different payment body, including while in flight.",
+            "content": {"application/json": {"example": {
+                "detail": "Idempotency key already used for a different request body."
+            }}},
+        },
+        502: {
+            "description": "The simulated charge failed without moving money; the key can be retried.",
+            "content": {"application/json": {"example": {
+                "detail": "Payment processing failed. No charge was made; retry with the same Idempotency-Key."
+            }}},
+        },
+    },
+)
 async def process_payment(
     payment: PaymentRequest,
     request: Request,
