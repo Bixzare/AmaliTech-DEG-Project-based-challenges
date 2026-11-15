@@ -152,3 +152,32 @@ Started charges run in their own tasks. Requests for the same key and payment wa
 ## Developer's choice
 
 [ADR 0005: Idempotency keys expire](docs/adr/0005-idempotency-keys-expire.md) defines a configurable retention window and periodic cleanup. Retrying after expiry creates a new payment; records are also lost on process restart.
+
+## Project structure
+
+```text
+backend/Idempotency-gateway/
+├── app/
+│   ├── main.py          # App factory, startup and shutdown, background expiry sweep
+│   ├── api.py           # HTTP endpoints: payment, health and the simulation control
+│   ├── store.py         # Idempotency store: replay, conflicts, in-flight sharing, expiry
+│   ├── processor.py     # Simulated payment processor
+│   ├── schemas.py       # Request validation and body fingerprinting
+│   └── config.py        # Settings read from environment variables, validated at startup
+├── tests/               # Automated tests (pytest), one file per behaviour
+├── test-cases/          # Manual test cases to run from the interactive docs page
+├── docs/adr/            # Architecture decision records
+├── requirements.txt     # Runtime dependencies
+├── requirements-dev.txt # Runtime dependencies plus test tools
+└── pytest.ini           # Test configuration
+```
+
+Each design decision has a record explaining the reasoning, the code that implements it, automated tests, and a manual test case:
+
+| Decision | Record | Code | Automated tests | Manual test case |
+|---|---|---|---|---|
+| FastAPI with an in-memory store | [ADR 0001](docs/adr/0001-fastapi-and-in-memory-store.md) | [main.py](app/main.py), [config.py](app/config.py) | [test_config.py](tests/test_config.py) | [ADR 0001 case](test-cases/adr-0001-fastapi-and-in-memory-store.md) |
+| Validation and body fingerprinting | [ADR 0002](docs/adr/0002-request-validation-and-fingerprinting.md) | [schemas.py](app/schemas.py), [api.py](app/api.py) | [test_payments.py](tests/test_payments.py), [test_idempotency.py](tests/test_idempotency.py) | [ADR 0002 case](test-cases/adr-0002-request-validation-and-fingerprinting.md) |
+| Concurrent requests share one charge | [ADR 0003](docs/adr/0003-in-flight-requests-share-one-charge-task.md) | [store.py](app/store.py) | [test_concurrency.py](tests/test_concurrency.py) | [ADR 0003 case](test-cases/adr-0003-in-flight-requests-share-one-charge-task.md) |
+| A failed charge releases its key | [ADR 0004](docs/adr/0004-failed-charges-release-the-key.md) | [store.py](app/store.py), [processor.py](app/processor.py) | [test_failures.py](tests/test_failures.py) | [ADR 0004 case](test-cases/adr-0004-failed-charges-release-the-key.md) |
+| Keys expire after 24 hours | [ADR 0005](docs/adr/0005-idempotency-keys-expire.md) | [store.py](app/store.py), [main.py](app/main.py) | [test_expiry.py](tests/test_expiry.py) | [ADR 0005 case](test-cases/adr-0005-idempotency-keys-expire.md) |
