@@ -14,15 +14,18 @@ See [README.md](README.md) for how to send a request from the docs page.
 
 ## 2. A payment is processed and remembered
 
+Use these values:
+
+| Field | Value |
+|---|---|
+| idempotency-key | `adr1-order-1` |
+| Request body | `{"amount": 100, "currency": "GHS"}` |
+
 | Step | Action | Expected |
 |---|---|---|
-| 2.1 | Send `POST /process-payment` with key `adr1-order-1` and the body below | Code `201` after about 2 seconds, message `Charged 100 GHS`, header `x-cache-hit: false` |
+| 2.1 | Send `POST /process-payment` with the values above | Code `201` after about 2 seconds, message `Charged 100 GHS`, header `x-cache-hit: false` |
 | 2.2 | Note the `transaction_id` in the response | |
 | 2.3 | Click **Execute** again without changing anything | Code `201` immediately, the same `transaction_id`, header `x-cache-hit: true` |
-
-```json
-{"amount": 100, "currency": "GHS"}
-```
 
 ## 3. Records are held in memory only
 

@@ -18,11 +18,12 @@ The steps are timed, so keep a clock or stopwatch in view. Each response also ca
 
 ## 1. A response replays until it expires, then the key is new again
 
-Use key `adr5-order-1` and this body for every step:
+Use these values for every step:
 
-```json
-{"amount": 100, "currency": "GHS"}
-```
+| Field | Value |
+|---|---|
+| idempotency-key | `adr5-order-1` |
+| Request body | `{"amount": 100, "currency": "GHS"}` |
 
 | Step | When | Action | Expected |
 |---|---|---|---|

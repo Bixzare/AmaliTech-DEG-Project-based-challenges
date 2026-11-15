@@ -20,11 +20,12 @@ For each section, fill in the key and body in both tabs first, then click **Exec
 
 ## 1. A duplicate that arrives mid-charge waits for the first request
 
-Fill in both tabs with key `adr3-order-1` and this body:
+Fill in both tabs with these values:
 
-```json
-{"amount": 100, "currency": "GHS"}
-```
+| Field | Value |
+|---|---|
+| idempotency-key | `adr3-order-1` |
+| Request body | `{"amount": 100, "currency": "GHS"}` |
 
 | Step | Action | Expected |
 |---|---|---|
@@ -45,13 +46,18 @@ One `transaction_id` across both tabs means one charge was made. Tab B waited fo
 
 ## 3. A client that disconnects does not lose the charge
 
-This is the timeout-and-retry situation the gateway exists for.
+This is the timeout-and-retry situation the gateway exists for. Fill in both tabs with these values:
+
+| Field | Value |
+|---|---|
+| idempotency-key | `adr3-order-3` |
+| Request body | `{"amount": 100, "currency": "GHS"}` |
 
 | Step | Tab | Action | Expected |
 |---|---|---|---|
-| 3.1 | A | Send key `adr3-order-3` with body `{"amount": 100, "currency": "GHS"}` | Tab A shows a loading indicator |
+| 3.1 | A | Click **Execute** | Tab A shows a loading indicator |
 | 3.2 | A | After 2 or 3 seconds, **close tab A** | The client has gone away mid-charge |
-| 3.3 | B | Send the same key and body | Tab B waits for the rest of the 10 seconds, counted from step 3.1, not a fresh 10 seconds |
+| 3.3 | B | Click **Execute** | Tab B waits for the rest of the 10 seconds, counted from step 3.1, not a fresh 10 seconds |
 | 3.4 | B | Read the response | Code `201` with `x-cache-hit: true` |
 | 3.5 | B | Click **Execute** again | Code `201` immediately, the same `transaction_id`, `x-cache-hit: true` |
 

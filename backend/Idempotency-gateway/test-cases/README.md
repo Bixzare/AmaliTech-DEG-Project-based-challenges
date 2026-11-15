@@ -20,7 +20,7 @@ The automated suite in [tests](../tests) covers the same behaviour and more. The
 ## Sending a request from the docs page
 
 1. Click **POST /process-payment** to expand it, then click **Try it out**.
-2. Type the key into the **idempotency-key** field.
+2. Type the key into the **idempotency-key** field. Every step gives the exact value to use, such as `adr2-order-1`.
 3. Replace the **Request body** with the JSON given in the step.
 4. Click **Execute**.
 5. Read the result under **Server response**: the **Code** column shows the status, **Response body** shows the JSON, and **Response headers** shows `x-cache-hit`.

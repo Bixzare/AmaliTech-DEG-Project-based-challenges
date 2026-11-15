@@ -48,7 +48,12 @@ A pending failure applies to the next charge that actually runs. A replay runs n
 
 This section needs two tabs and a longer delay. Set it up as described in the [ADR 0003 test case](adr-0003-in-flight-requests-share-one-charge-task.md#setup-for-this-case): start the server with `PROCESSING_DELAY_SECONDS` set to `10` and open the docs page in tab A and tab B.
 
-Fill in both tabs with key `adr4-order-4` and body `{"amount": 100, "currency": "GHS"}` before starting.
+Before starting, fill in `/process-payment` in both tabs with these values:
+
+| Field | Value |
+|---|---|
+| idempotency-key | `adr4-order-4` |
+| Request body | `{"amount": 100, "currency": "GHS"}` |
 
 | Step | Tab | Action | Expected |
 |---|---|---|---|
