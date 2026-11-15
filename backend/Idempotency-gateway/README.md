@@ -172,6 +172,8 @@ backend/Idempotency-gateway/
 └── pytest.ini           # Test configuration
 ```
 
+The automated tests also run on GitHub Actions for every push that touches this folder. The workflow is at [.github/workflows/idempotency-gateway.yml](../../.github/workflows/idempotency-gateway.yml) in the repository root.
+
 Each design decision has a record explaining the reasoning, the code that implements it, automated tests, and a manual test case:
 
 | Decision | Record | Code | Automated tests | Manual test case |
